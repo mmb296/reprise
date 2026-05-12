@@ -23,6 +23,8 @@ class Service:
 
     def reprise(self) -> list[Reprisal]:
         motifs = self.motif_repository.get_motifs()
+        if not motifs:
+            return []
         reprisal_max = max([len(motif.reprisals) for motif in motifs])
         reprisal_min = min([len(motif.reprisals) for motif in motifs])
 
