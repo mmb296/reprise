@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, String, Text, create_engine
 from sqlalchemy.dialects.sqlite import JSON
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import backref, declarative_base, relationship, sessionmaker
 from sqlalchemy.schema import ForeignKey
 
 database = os.getenv("DATABASE_URL", "sqlite:///reprise.db")
@@ -38,7 +38,9 @@ class Motif(Base):
     citation_uuid = Column(String(36), ForeignKey("citation.uuid"), nullable=True)
 
     citation = relationship("Citation", backref="motifs")
-    cloze_deletions = relationship("ClozeDeletion", back_populates="motif")
+    cloze_deletions = relationship(
+        "ClozeDeletion", back_populates="motif", cascade="all, delete-orphan"
+    )
 
 
 class Citation(Base):
@@ -60,7 +62,9 @@ class Reprisal(Base):
     )
     created_at = Column(DateTime, default=datetime.now, nullable=False)
 
-    motif = relationship("Motif", backref="reprisals")
+    motif = relationship(
+        "Motif", backref=backref("reprisals", cascade="all, delete-orphan")
+    )
     cloze_deletion = relationship("ClozeDeletion", backref="reprisals")
 
 
