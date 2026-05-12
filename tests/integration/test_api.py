@@ -89,7 +89,7 @@ class TestAPI:
     def test_add_motif_with_auto_cloze_deletions(
         self, mock_agent_run_sync, client, motif_with_auto_cloze_deletions_data
     ):
-        mock_agent_run_sync.return_value.data = MaskTuples(
+        mock_agent_run_sync.return_value.output = MaskTuples(
             tuples=[[[0, 3]], [[0, 3], [11, 17]]]
         )
 

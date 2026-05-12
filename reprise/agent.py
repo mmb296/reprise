@@ -107,4 +107,4 @@ def generate_cloze_deletions(content: str, n_max: int = 1) -> List[List[List[int
         f"Create appropriate cloze deletions (n_max={n_max}) for: '{content}'",
         deps=OpenAIDependencies(api_key=OPENAI_API_KEY),
     )
-    return response.data.tuples
+    return response.output.tuples
