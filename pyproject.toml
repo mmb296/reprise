@@ -12,7 +12,8 @@ dependencies = [
     "openai",
     "requests",
     "pydantic-ai-slim[openai]",
-    "logfire"
+    "logfire",
+    "opentelemetry-instrumentation-fastapi>=0.53b1",
 ]
 
 [dependency-groups]
