@@ -8,8 +8,6 @@ load_dotenv()
 # OpenAI Settings
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Logfire token
-LOGFIRE_TOKEN = os.getenv("LOGFIRE_TOKEN")
 
 # Mailgun Settings
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")

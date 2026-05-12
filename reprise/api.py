@@ -1,10 +1,8 @@
 from typing import Any, Dict, List
 
-import logfire
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from reprise import settings
 from reprise.db import database_session
 from reprise.repository import (
     CitationRepository,
@@ -28,14 +26,6 @@ from reprise.service import Service
 
 app = FastAPI()
 
-
-def configure_logfire():
-    if settings.LOGFIRE_TOKEN:
-        logfire.configure(token=settings.LOGFIRE_TOKEN)
-        logfire.instrument_fastapi(app)
-
-
-configure_logfire()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

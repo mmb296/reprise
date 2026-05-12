@@ -1,11 +1,8 @@
 from unittest.mock import patch
 
 import pytest
-from flask import json
 
-from reprise import settings
 from reprise.agent import MaskTuples
-from reprise.api import configure_logfire
 from reprise.db import Citation, Motif, database_session
 from tests.factories import citation_factory, cloze_deletion_factory, motif_factory
 
@@ -47,13 +44,6 @@ class TestAPI:
     @pytest.fixture
     def cloze_update_data(self, cloze_deletion):
         return {"uuid": cloze_deletion.uuid, "mask_tuples": [[1, 3], [5, 7]]}
-
-    @patch("logfire.instrument_openai")
-    @patch("logfire.configure")
-    def test_configure_logfire(self, mock_configure, mock_instrument):
-        configure_logfire()
-        mock_configure.assert_called_once_with(token=settings.LOGFIRE_TOKEN)
-        mock_instrument.assert_called_once()
 
     def test_get_motifs(self, session, client):
         motif = motif_factory(session=session).create()
