@@ -20,7 +20,6 @@ class TestAPI:
     def cloze_deletion(self, session, motif):
         return cloze_deletion_factory(session=session).create(motif=motif)
 
-    # Common test data fixtures
     @pytest.fixture
     def motif_data(self):
         return {"content": "Test motif content"}
@@ -50,7 +49,7 @@ class TestAPI:
         cloze_deletion = cloze_deletion_factory(session=session).create(motif=motif)
 
         response = client.get("/motifs")
-        data = json.loads(response.data)
+        data = response.json()
 
         assert response.status_code == 200
         assert len(data["motifs"]) == 1
@@ -60,13 +59,9 @@ class TestAPI:
         ]
 
     def test_add_motif_without_citation(self, client, motif_data):
-        response = client.post(
-            "/motifs",
-            data=json.dumps(motif_data),
-            content_type="application/json",
-        )
+        response = client.post("/motifs", json=motif_data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["content"] == motif_data["content"]
         assert data["citation"] is None
@@ -77,13 +72,9 @@ class TestAPI:
             assert motif.content == motif_data["content"]
 
     def test_add_motif_with_citation(self, client, motif_with_citation_data):
-        response = client.post(
-            "/motifs",
-            data=json.dumps(motif_with_citation_data),
-            content_type="application/json",
-        )
+        response = client.post("/motifs", json=motif_with_citation_data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["content"] == motif_with_citation_data["content"]
         assert data["citation"] == motif_with_citation_data["citation"]
@@ -98,18 +89,13 @@ class TestAPI:
     def test_add_motif_with_auto_cloze_deletions(
         self, mock_agent_run_sync, client, motif_with_auto_cloze_deletions_data
     ):
-        # Mock the LLM response to return specific mask tuple sets
         mock_agent_run_sync.return_value.data = MaskTuples(
             tuples=[[[0, 3]], [[0, 3], [11, 17]]]
         )
 
-        response = client.post(
-            "/motifs",
-            data=json.dumps(motif_with_auto_cloze_deletions_data),
-            content_type="application/json",
-        )
+        response = client.post("/motifs", json=motif_with_auto_cloze_deletions_data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["cloze_deletions"] is not None
         assert len(data["cloze_deletions"]) == 2
@@ -119,19 +105,14 @@ class TestAPI:
         with database_session() as session:
             motif = session.query(Motif).filter_by(uuid=data["uuid"]).one_or_none()
             assert len(motif.cloze_deletions) == 2
-            # The order might not be guaranteed, so check both ways
             mask_tuples_list = [cd.mask_tuples for cd in motif.cloze_deletions]
             assert [[0, 3]] in mask_tuples_list
             assert [[0, 3], [11, 17]] in mask_tuples_list
 
     def test_update_motif(self, client, motif, motif_data):
-        response = client.put(
-            f"/motifs/{motif.uuid}",
-            data=json.dumps(motif_data),
-            content_type="application/json",
-        )
+        response = client.put(f"/motifs/{motif.uuid}", json=motif_data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["content"] == motif_data["content"]
 
@@ -142,8 +123,7 @@ class TestAPI:
     def test_update_motif_invalid_citation(self, client, motif):
         response = client.put(
             f"/motifs/{motif.uuid}",
-            data=json.dumps({"content": "Updated content", "citation": "invalid!"}),
-            content_type="application/json",
+            json={"content": "Updated content", "citation": "invalid!"},
         )
 
         assert response.status_code == 404
@@ -156,19 +136,15 @@ class TestAPI:
         response = client.delete(f"/motifs/{motif.uuid}")
 
         assert response.status_code == 200
-        assert json.loads(response.data)["message"] == "Motif deleted"
+        assert response.json()["message"] == "Motif deleted"
 
         with database_session() as session:
             assert len(session.query(Motif).filter_by(uuid=motif.uuid).all()) == 0
 
     def test_create_citation(self, client, citation_data):
-        response = client.post(
-            "/citations",
-            data=json.dumps(citation_data),
-            content_type="application/json",
-        )
+        response = client.post("/citations", json=citation_data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["title"] == citation_data["title"]
 
@@ -180,7 +156,7 @@ class TestAPI:
 
     def test_get_citations(self, client, citation):
         response = client.get("/citations")
-        data = json.loads(response.data)
+        data = response.json()
 
         assert response.status_code == 200
         assert len(data) == 1
@@ -189,11 +165,10 @@ class TestAPI:
     def test_add_citation_to_motif(self, client, motif, citation):
         response = client.put(
             f"/motifs/{motif.uuid}",
-            data=json.dumps({"content": motif.content, "citation": citation.title}),
-            content_type="application/json",
+            json={"content": motif.content, "citation": citation.title},
         )
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["citation"] == citation.title
 
@@ -206,7 +181,7 @@ class TestAPI:
         cloze_deletion = cloze_deletion_factory(session=session).create(motif=motif_2)
 
         response = client.post("/reprise")
-        data = json.loads(response.data)
+        data = response.json()
 
         assert response.status_code == 200
         assert len(data) > 0
@@ -219,39 +194,31 @@ class TestAPI:
     def test_get_motifs_paginated(self, client, session):
         motif_factory(session=session).create_batch(12)
 
-        # first page
         response = client.get("/motifs?page=1&page_size=5")
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert len(data["motifs"]) == 5
         assert data["total_count"] == 12
 
-        # second page
         response = client.get("/motifs?page=2&page_size=5")
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert len(data["motifs"]) == 5
 
-        # third page
         response = client.get("/motifs?page=3&page_size=5")
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert len(data["motifs"]) == 2
 
-        # empty page
         response = client.get("/motifs?page=4&page_size=5")
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert len(data["motifs"]) == 0
 
     def test_add_cloze_deletion(self, client, motif, cloze_deletion_data):
-        response = client.post(
-            "/cloze_deletions",
-            data=json.dumps(cloze_deletion_data),
-            content_type="application/json",
-        )
+        response = client.post("/cloze_deletions", json=cloze_deletion_data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["mask_tuples"] == cloze_deletion_data["mask_tuples"]
 
@@ -266,13 +233,9 @@ class TestAPI:
     def test_update_cloze_deletion(
         self, client, motif, cloze_deletion, cloze_update_data
     ):
-        response = client.put(
-            "/cloze_deletions",
-            data=json.dumps(cloze_update_data),
-            content_type="application/json",
-        )
+        response = client.put("/cloze_deletions", json=cloze_update_data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == 200
         assert data["mask_tuples"] == cloze_update_data["mask_tuples"]
 
@@ -290,7 +253,7 @@ class TestAPI:
     def test_delete_cloze_deletion(self, client, motif, cloze_deletion):
         response = client.delete(f"/cloze_deletions/{cloze_deletion.uuid}")
         assert response.status_code == 200
-        assert json.loads(response.data)["message"] == "Cloze deletion deleted"
+        assert response.json()["message"] == "Cloze deletion deleted"
 
         with database_session() as session:
             assert (
@@ -301,132 +264,94 @@ class TestAPI:
                 == []
             )
 
-    # Parameterized validation tests
     @pytest.mark.parametrize(
         "endpoint,data,field,expected_status",
         [
-            # Motif validation tests
-            ("/motifs", {}, "content", 400),
-            ("/motifs", {"content": 123}, "content", 400),
-            # Citation validation tests
-            ("/citations", {}, "title", 400),
-            # Cloze deletion validation tests
-            ("/cloze_deletions", {}, "motif_uuid", 400),
-            ("/cloze_deletions", {}, "mask_tuples", 400),
+            ("/motifs", {}, "content", 422),
+            ("/motifs", {"content": 123}, "content", 422),
+            ("/citations", {}, "title", 422),
+            ("/cloze_deletions", {}, "motif_uuid", 422),
+            ("/cloze_deletions", {}, "mask_tuples", 422),
             (
                 "/cloze_deletions",
                 {"motif_uuid": "uuid", "mask_tuples": "invalid"},
                 "mask_tuples",
-                400,
+                422,
             ),
             (
                 "/cloze_deletions",
                 {"motif_uuid": "uuid", "mask_tuples": [[0], [4, 6]]},
                 "mask_tuples",
-                400,
+                422,
             ),
             (
                 "/cloze_deletions",
                 {"motif_uuid": "uuid", "mask_tuples": [["a", "b"], [4, 6]]},
                 "mask_tuples",
-                400,
+                422,
             ),
         ],
     )
     def test_validation_errors_post(
         self, client, endpoint, data, field, expected_status
     ):
-        """Parameterized test for validation errors on POST endpoints."""
-        response = client.post(
-            endpoint,
-            data=json.dumps(data),
-            content_type="application/json",
-        )
+        response = client.post(endpoint, json=data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == expected_status
-        if expected_status == 400:
-            assert "validation_error" in data
-            if field:
-                # For flask-pydantic, errors are in body_params or query_params
-                if "body_params" in data["validation_error"]:
-                    errors = data["validation_error"]["body_params"]
-                elif "query_params" in data["validation_error"]:
-                    errors = data["validation_error"]["query_params"]
-                else:
-                    errors = []
-                assert any(field in error["loc"] for error in errors)
+        if field:
+            errors = data["detail"]
+            assert any(field in error["loc"] for error in errors)
 
     @pytest.mark.parametrize(
         "endpoint,data,field,expected_status",
         [
-            # Motif update validation tests
-            ("/motifs/some-uuid", {}, "content", 400),
-            ("/motifs/some-uuid", {"content": 123}, "content", 400),
+            ("/motifs/some-uuid", {}, "content", 422),
+            ("/motifs/some-uuid", {"content": 123}, "content", 422),
             (
                 "/motifs/some-uuid",
                 {"content": "valid", "citation": 123},
                 "citation",
-                400,
+                422,
             ),
-            # Cloze deletion update validation tests
-            ("/cloze_deletions", {}, "uuid", 400),
-            ("/cloze_deletions", {}, "mask_tuples", 400),
+            ("/cloze_deletions", {}, "uuid", 422),
+            ("/cloze_deletions", {}, "mask_tuples", 422),
             (
                 "/cloze_deletions",
                 {"uuid": "some-uuid", "mask_tuples": "invalid"},
                 "mask_tuples",
-                400,
+                422,
             ),
         ],
     )
     def test_validation_errors_put(
         self, client, endpoint, data, field, expected_status
     ):
-        """Parameterized test for validation errors on PUT endpoints."""
-        response = client.put(
-            endpoint,
-            data=json.dumps(data),
-            content_type="application/json",
-        )
+        response = client.put(endpoint, json=data)
 
-        data = json.loads(response.data)
+        data = response.json()
         assert response.status_code == expected_status
-        if expected_status == 400:
-            assert "validation_error" in data
-            if field:
-                # For flask-pydantic, errors are in body_params or query_params
-                if "body_params" in data["validation_error"]:
-                    errors = data["validation_error"]["body_params"]
-                elif "query_params" in data["validation_error"]:
-                    errors = data["validation_error"]["query_params"]
-                else:
-                    errors = []
-                assert any(field in error["loc"] for error in errors)
+        if field:
+            errors = data["detail"]
+            assert any(field in error["loc"] for error in errors)
 
     def test_malformed_json(self, client):
-        """Test error handling for malformed JSON."""
         response = client.post(
             "/motifs",
-            data="{invalid: json",
-            content_type="application/json",
+            content="{invalid: json",
+            headers={"Content-Type": "application/json"},
         )
 
-        assert response.status_code == 400
+        assert response.status_code == 422
 
     @patch("pydantic_ai.agent.Agent.run_sync")
     def test_add_motif_with_openai_error(
         self, mock_agent_run_sync, client, motif_with_auto_cloze_deletions_data
     ):
-        # Mock the LLM call to raise an exception
         mock_agent_run_sync.side_effect = Exception("OpenAI API Error")
 
-        response = client.post(
-            "/motifs",
-            data=json.dumps(motif_with_auto_cloze_deletions_data),
-            content_type="application/json",
-        )
+        response = client.post("/motifs", json=motif_with_auto_cloze_deletions_data)
 
         assert response.status_code == 500
-        data = json.loads(response.data)
-        assert "OpenAI API Error" in data["error"]
+        data = response.json()
+        assert "OpenAI API Error" in data["detail"]

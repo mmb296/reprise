@@ -1,6 +1,6 @@
-from typing import Any, Dict, List
+from typing import Annotated, Any, Dict, List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from reprise.db import database_session
@@ -35,7 +35,7 @@ app.add_middleware(
 
 
 @app.get("/motifs")
-def get_motifs(query: PaginationParams) -> MotifListResponse:
+def get_motifs(query: Annotated[PaginationParams, Query()]) -> MotifListResponse:
     with database_session() as session:
         repository = MotifRepository(session)
         motifs = repository.get_motifs_paginated(query.page, query.page_size)
@@ -47,12 +47,14 @@ def get_motifs(query: PaginationParams) -> MotifListResponse:
                 content=motif.content,
                 created_at=motif.created_at.isoformat(),
                 citation=motif.citation.title if motif.citation else None,
-                cloze_deletions=[
-                    ClozeDeletionResponse(uuid=cd.uuid, mask_tuples=cd.mask_tuples)
-                    for cd in motif.cloze_deletions
-                ]
-                if motif.cloze_deletions
-                else None,
+                cloze_deletions=(
+                    [
+                        ClozeDeletionResponse(uuid=cd.uuid, mask_tuples=cd.mask_tuples)
+                        for cd in motif.cloze_deletions
+                    ]
+                    if motif.cloze_deletions
+                    else None
+                ),
             ).model_dump()
             for motif in motifs
         ]
@@ -84,12 +86,14 @@ def create_motif(body: MotifCreate) -> MotifResponse:
             uuid=motif.uuid,
             content=motif.content,
             citation=motif.citation.title if motif.citation else None,
-            cloze_deletions=[
-                ClozeDeletionResponse(uuid=cd.uuid, mask_tuples=cd.mask_tuples)
-                for cd in motif.cloze_deletions
-            ]
-            if motif.cloze_deletions
-            else None,
+            cloze_deletions=(
+                [
+                    ClozeDeletionResponse(uuid=cd.uuid, mask_tuples=cd.mask_tuples)
+                    for cd in motif.cloze_deletions
+                ]
+                if motif.cloze_deletions
+                else None
+            ),
             created_at=motif.created_at.isoformat(),
         )
 
@@ -115,12 +119,14 @@ def update_motif(uuid: str, body: MotifUpdate) -> MotifResponse:
             uuid=motif.uuid,
             content=motif.content,
             citation=motif.citation.title if motif.citation else None,
-            cloze_deletions=[
-                ClozeDeletionResponse(uuid=cd.uuid, mask_tuples=cd.mask_tuples)
-                for cd in motif.cloze_deletions
-            ]
-            if motif.cloze_deletions
-            else None,
+            cloze_deletions=(
+                [
+                    ClozeDeletionResponse(uuid=cd.uuid, mask_tuples=cd.mask_tuples)
+                    for cd in motif.cloze_deletions
+                ]
+                if motif.cloze_deletions
+                else None
+            ),
             created_at=motif.created_at.isoformat(),
         )
 
@@ -165,18 +171,20 @@ def reprise() -> List[Dict[str, Any]]:
             MotifResponse(
                 uuid=reprisal.motif.uuid,
                 content=reprisal.motif.content,
-                cloze_deletions=[
-                    ClozeDeletionResponse(
-                        uuid=reprisal.cloze_deletion.uuid,
-                        mask_tuples=reprisal.cloze_deletion.mask_tuples,
-                    )
-                ]
-                if reprisal.cloze_deletion
-                else None,
+                cloze_deletions=(
+                    [
+                        ClozeDeletionResponse(
+                            uuid=reprisal.cloze_deletion.uuid,
+                            mask_tuples=reprisal.cloze_deletion.mask_tuples,
+                        )
+                    ]
+                    if reprisal.cloze_deletion
+                    else None
+                ),
                 created_at=reprisal.motif.created_at.isoformat(),
-                citation=reprisal.motif.citation.title
-                if reprisal.motif.citation
-                else None,
+                citation=(
+                    reprisal.motif.citation.title if reprisal.motif.citation else None
+                ),
             ).model_dump()
             for reprisal in reprisals
         ]
@@ -186,7 +194,9 @@ def reprise() -> List[Dict[str, Any]]:
 def create_cloze_deletion(body: ClozeDeletionCreate) -> ClozeDeletionResponse:
     with database_session() as session:
         repository = ClozeDeletionRepository(session)
-        cloze_deletion = repository.add_cloze_deletion(body.motif_uuid, body.mask_tuples)
+        cloze_deletion = repository.add_cloze_deletion(
+            body.motif_uuid, body.mask_tuples
+        )
         return ClozeDeletionResponse(
             uuid=cloze_deletion.uuid,
             mask_tuples=cloze_deletion.mask_tuples,
