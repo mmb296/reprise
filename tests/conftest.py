@@ -1,4 +1,5 @@
 import pytest
+from fastapi.testclient import TestClient
 
 from reprise.api import app
 from reprise.db import Base, database_session, engine
@@ -16,5 +17,4 @@ def session():
 
 @pytest.fixture
 def client():
-    app.testing = True
-    return app.test_client()
+    return TestClient(app)

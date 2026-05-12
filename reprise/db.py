@@ -6,10 +6,19 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, String, Text, create_engine
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import backref, declarative_base, relationship, sessionmaker
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.schema import ForeignKey
 
 database = os.getenv("DATABASE_URL", "sqlite:///reprise.db")
-engine = create_engine(database, echo=False)
+
+if database == "sqlite:///:memory:":
+    engine = create_engine(
+        database,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    engine = create_engine(database, echo=False)
 
 Base = declarative_base()
 

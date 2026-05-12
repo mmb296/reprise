@@ -45,7 +45,7 @@ class OpenAIDependencies:
 
 
 agent = Agent(
-    model="gpt-4.1-mini",
+    model="openai:gpt-4.1-mini",
     deps_type=OpenAIDependencies,
     system_prompt=system_prompt,
     output_type=MaskTuples,
@@ -107,4 +107,4 @@ def generate_cloze_deletions(content: str, n_max: int = 1) -> List[List[List[int
         f"Create appropriate cloze deletions (n_max={n_max}) for: '{content}'",
         deps=OpenAIDependencies(api_key=OPENAI_API_KEY),
     )
-    return response.data.tuples
+    return response.output.tuples

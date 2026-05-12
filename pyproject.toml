@@ -5,15 +5,13 @@ dynamic = ["version"]
 
 dependencies = [
     "python-dotenv",
-    "flask",
-    "flask-cors",
+    "fastapi",
+    "uvicorn",
     "sqlalchemy",
     "alembic",
-    "flask-pydantic",
     "openai",
     "requests",
-    "pydantic-ai",
-    "logfire"
+    "pydantic-ai-slim[openai]",
 ]
 
 [dependency-groups]

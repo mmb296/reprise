@@ -1,5 +1,5 @@
 export const fetchCitations = async () => {
-  const response = await fetch("http://127.0.0.1:5000/citations");
+  const response = await fetch("http://127.0.0.1:8000/citations");
   if (!response.ok) {
     throw new Error("Failed to fetch citations");
   }
@@ -7,7 +7,7 @@ export const fetchCitations = async () => {
 };
 
 export const addCitation = async (title) => {
-  const response = await fetch("http://127.0.0.1:5000/citations", {
+  const response = await fetch("http://127.0.0.1:8000/citations", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
